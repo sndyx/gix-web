@@ -1,0 +1,86 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500&display=swap');
+
+body {
+    margin: 0;
+    padding: 0;
+}
+
+.readme h1, .readme h2, .readme h3, .readme h4, .readme h5, .readme h6 {
+    font-family: "Playfair Display", serif;
+}
+
+.readme h1 {
+    border-bottom: 1px double #000;
+    position: relative;
+    margin-bottom: 5px;
+}
+
+.readme h1:after {
+    content: '';
+    border-bottom: 1px solid #000;
+    width: 100%;
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+}
+
+.readme h2 {
+    border-bottom: 1px solid #000;
+}
+
+.readme blockquote {
+    margin: 10px 0;
+    padding: 0 20px;
+    border-left: 5px solid #ccc;
+    color: #aaa;
+}
+
+.readme code {
+    white-space: pre-wrap;
+}
+
+.breadcrumbs span {
+    font-size: 20px;
+}
+
+.container {
+    padding: 0 5%;
+    display: flex;
+}
+
+.refs {
+    width: 10%;
+    overflow: hidden;
+    height: min-content;
+    margin-right: 8%;
+    font-family: "Trebuchet MS", serif;
+}
+
+.content {
+    width: 60%;
+    overflow: hidden;
+    padding-left: 2%;
+    padding-right: 20%;
+    height: min-content;
+    border-left: 1px solid #ccc;
+}
+
+.readme {
+
+}
+
+.anchor {
+    outline: none;
+}
+
+a {
+    color: blue;
+}
+
+a:hover {
+    background-color: #d6e8ff;
+}
+
+code {
+    background-color: #f5f5f5
+}

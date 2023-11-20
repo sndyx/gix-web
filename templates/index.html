@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" type="text/css" href="/css/index.css" />
+</head>
+<body>
+<div class="container">
+    <div class="refs">
+        <h2>Branches</h2>
+        {% for branch in branches %}
+            <p>{{ branch }}</p>
+        {% endfor %}
+        <h2>Tags</h2>
+        {% for tag in tags %}
+            <p>{{ tag }}</p>
+        {% endfor %}
+    </div>
+    <div class="content">
+        {% if readme.is_some() %}
+            <h1>{{ readme.unwrap().title.unwrap() }}</h1>
+        {% else %}
+
+        {% endif %}
+        {% if commits.len() > 0 %}
+            <div class="commits">
+                {% for commit in commits %}
+                    <p><code>{{ commit.short_id().unwrap() }}</code> {{ commit.message().unwrap().summary() }}</p>
+                {% endfor %}
+            </div>
+        {% else %}
+
+        {% endif %}
+        <hr>
+        {% if readme.is_some() %}
+            <div class="readme">
+                {{ readme.unwrap().content|safe }}
+            </div>
+        {% endif %}
+    </div>
+</div>
+</body>
+</html>
