@@ -1,15 +1,15 @@
 mod page;
 
 use actix_web::{get, App, HttpResponse, HttpServer, web, HttpRequest};
-use crate::page::{index, RepoData};
+use crate::page::index;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
-            .app_data(web::Data::new(RepoData {
-                path: String::from("/Users/25alexandercapitos/sndy/Documents"),
-            }))
+//          .app_data(web::Data::new(RepoData {
+//              path: String::from("/Users/25alexandercapitos/sndy/Documents"),
+//          }))
             .service(index)
             .service(css)
     })

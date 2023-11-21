@@ -9,13 +9,15 @@ body {
     font-family: "Playfair Display", serif;
 }
 
-.readme h1 {
+h1 {
+    font-size: 50px;
     border-bottom: 1px double #000;
     position: relative;
-    margin-bottom: 5px;
+    margin: 10px 10%;
+    text-align: center;
 }
 
-.readme h1:after {
+h1:after {
     content: '';
     border-bottom: 1px solid #000;
     width: 100%;
@@ -63,6 +65,7 @@ body {
     padding-right: 20%;
     height: min-content;
     border-left: 1px solid #ccc;
+    max-width: 1200px;
 }
 
 .readme {

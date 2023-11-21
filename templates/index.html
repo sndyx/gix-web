@@ -2,10 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>{{ title }}</title>
+    <title>{{ name }}</title>
     <link rel="stylesheet" type="text/css" href="/css/index.css" />
 </head>
 <body>
+{% if title.is_some() %}
+    <h1>{{ title.unwrap() }}</h1>
+{% else %}
+{% endif %}
 <div class="container">
     <div class="refs">
         <h2>Branches</h2>
@@ -18,11 +22,6 @@
         {% endfor %}
     </div>
     <div class="content">
-        {% if readme.is_some() %}
-            <h1>{{ readme.unwrap().title.unwrap() }}</h1>
-        {% else %}
-
-        {% endif %}
         {% if commits.len() > 0 %}
             <div class="commits">
                 {% for commit in commits %}
@@ -35,7 +34,7 @@
         <hr>
         {% if readme.is_some() %}
             <div class="readme">
-                {{ readme.unwrap().content|safe }}
+                {{ readme.unwrap()|safe }}
             </div>
         {% endif %}
     </div>
