@@ -5,8 +5,10 @@ edition = "2021"
 
 [dependencies]
 actix-web = "4.4.0"
+actix-session = { version = "0.8.0", features = ["cookie-session"] }
 gix = "0.55.2"
-indoc = "2.0.4"
-markdown = "1.0.0-alpha.14"
 comrak = "0.19.0"
 askama = "0.12.1"
+rust-embed = "8.0.0"
+futures-util = "0.3.29"
+futures = "0.3.29"

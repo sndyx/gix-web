@@ -2,19 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>{{ name }}</title>
-    <link rel="stylesheet" type="text/css" href="/css/index.css" />
+    <title>{{ name }} | gix-web</title>
+    <link rel="stylesheet" type="text/css" href="css/index.css" />
 </head>
 <body>
-{% if title.is_some() %}
-    <h1>{{ title.unwrap() }}</h1>
-{% else %}
-{% endif %}
 <div class="container">
     <div class="refs">
         <h2>Branches</h2>
         {% for branch in branches %}
-            <p>{{ branch }}</p>
+            <a href="{{ name }}/refs/head/{{ branch }}"><p>{{ branch }}</p></a>
         {% endfor %}
         <h2>Tags</h2>
         {% for tag in tags %}
@@ -28,10 +24,11 @@
                     <p><code>{{ commit.short_id().unwrap() }}</code> {{ commit.message().unwrap().summary() }}</p>
                 {% endfor %}
             </div>
+            <hr class="commits-line">
         {% else %}
 
         {% endif %}
-        <hr>
+
         {% if readme.is_some() %}
             <div class="readme">
                 {{ readme.unwrap()|safe }}
