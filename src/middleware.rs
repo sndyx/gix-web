@@ -1,11 +1,10 @@
 use std::future::{ready, Ready};
-use std::path::Path;
 use std::rc::Rc;
 
 use actix_web::{dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform}, Error, HttpMessage, HttpResponse};
 use actix_web::body::EitherBody;
 use futures_util::future::LocalBoxFuture;
-use crate::RepoDir;
+use crate::{RepoData, RepoDir};
 
 pub struct UnwrapRepo;
 
@@ -47,10 +46,11 @@ impl<S, B> Service<ServiceRequest> for UnwrapRepoMiddleware<S>
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let service = Rc::clone(&self.service);
 
-        let dir = Path::new(req.app_data::<RepoDir>().unwrap().path).join(req.match_info().query("repo"));
+        let dir = req.app_data::<RepoDir>().unwrap().path
+            .join(req.match_info().query("repo"));
 
         Box::pin(async move {
-            let repo = match gix::open(dir) {
+            let repo = match gix::open(&dir) {
                 Ok(repo) => repo,
                 Err(err) => {
                     return Ok(req.into_response(
@@ -62,7 +62,7 @@ impl<S, B> Service<ServiceRequest> for UnwrapRepoMiddleware<S>
             println!("{:?}", repo);
             println!("{:?}", req);
 
-            req.extensions_mut().insert();
+            req.extensions_mut().insert(RepoData { repo, name: "" });
             service.call(req).await.map(|res| res.map_into_left_body())
         })
     }

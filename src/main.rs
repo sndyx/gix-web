@@ -15,8 +15,8 @@ use gix::Repository;
 use rust_embed::RustEmbed;
 use crate::middleware::UnwrapRepo;
 
-struct RepoDir {
-    path: PathBuf
+struct RepoDir<'a> {
+    path: &'a Path
 }
 
 struct RepoData<'a> {
@@ -30,7 +30,7 @@ struct CssFiles;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let path = PathBuf::from("/Users/25alexandercapitos/sndy/Documents");
+    let path = Path::new("/Users/25alexandercapitos/sndy/Documents");
 
     HttpServer::new(move || {
         let scope = if let Ok(repo) = gix::open(path) {
@@ -46,7 +46,7 @@ async fn main() -> std::io::Result<()> {
         };
 
         App::new()
-            .app_data(RepoDir { path: path.clone() })
+            .app_data(RepoDir { path })
             .service(
                 scope
             )
