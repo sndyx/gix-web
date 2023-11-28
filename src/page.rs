@@ -1,11 +1,17 @@
 use std::fs;
-use std::path::Path;
+use std::path::PathBuf;
 use actix_web::{get, web, HttpResponse};
 use askama::Template;
 use comrak::{format_html_with_plugins, parse_document, Arena, Options, Plugins};
 use comrak::nodes::NodeValue;
 use comrak::plugins::syntect::SyntectAdapter;
-use gix::Commit;
+use gix::{Commit, Repository};
+
+
+#[get("/")]
+pub async fn index() -> HttpResponse {
+    HttpResponse::Ok().body("Repo Hub Index")
+}
 
 #[derive(Template)]
 #[template(path = "index.html")]
@@ -17,15 +23,9 @@ struct IndexTemplate<'a> {
     readme: Option<&'a str>
 }
 
-#[get("/{repo}")]
-pub async fn index(path: web::Path<String>) -> HttpResponse {
-    let path = Path::new("/Users/25alexandercapitos/sndy/Documents")
-        .join(path.into_inner());
-    let repo = match gix::open(&path) {
-        Ok(repo) => repo,
-        Err(error) => return HttpResponse::NotFound().body(error.to_string())
-    };
-    let name = path.file_name().unwrap().to_str().unwrap();
+#[get("")]
+pub async fn repo_index(repo: web::ReqData<Repository>) -> HttpResponse {
+    let name = "";
 
     let references = repo.references().unwrap();
     let branches: Vec<String> = references.local_branches().unwrap()
@@ -38,7 +38,7 @@ pub async fn index(path: web::Path<String>) -> HttpResponse {
     let head_commit = repo.head_commit().unwrap();
     let commits = head_commit.ancestors().all().unwrap().take(5).map(|info| info.unwrap().object().unwrap()).collect();
 
-    let readme = fs::read_to_string(path.join("readme.md")).ok()
+    let readme = fs::read_to_string(repo.work_dir().unwrap().join("readme.md")).ok()
         .map(|s| render_markdown(s));
 
     let template = IndexTemplate {
@@ -53,45 +53,35 @@ pub async fn index(path: web::Path<String>) -> HttpResponse {
 }
 
 #[derive(Template)]
-#[template(path = "head.html")]
-struct HeadTemplate<'a> {
+#[template(path = "directory.html")]
+struct DirectoryTemplate<'a> {
     name: &'a str,
     branch: &'a str,
+    readme: Option<&'a str>,
 }
 
-#[get("/{repo}/refs/head/{branch}")]
-pub async fn head(path: web::Path<(String, String)>) -> HttpResponse {
-    let path = Path::new("/Users/25alexandercapitos/sndy/Documents")
-        .join(path.into_inner().0);
-    let repo = match gix::open(&path) {
-        Ok(repo) => repo,
-        Err(error) => return HttpResponse::NotFound().body(error.to_string())
-    };
-    let name = path.file_name().unwrap().to_str().unwrap();
+#[derive(Template)]
+#[template(path = "directory.html")]
+struct FileTemplate<'a> {
+    name: &'a str,
+    branch: &'a str,
+    file: &'a str,
+}
 
-    let references = repo.references().unwrap();
-    let branches: Vec<String> = references.local_branches().unwrap()
-        .map(|it| it.unwrap().inner.name.shorten().to_string())
-        .collect();
-    let tags: Vec<String> = references.tags().unwrap()
-        .map(|it| it.unwrap().inner.name.shorten().to_string())
-        .collect();
 
-    let head_commit = repo.head_commit().unwrap();
-    let commits = head_commit.ancestors().all().unwrap().take(5).map(|info| info.unwrap().object().unwrap()).collect();
+#[get("/refs/heads/{branch}/{file:.*}")]
+pub async fn repo_path(
+    repo: web::ReqData<Repository>,
+    path: web::Path<(String, Vec<String>)>
+) -> HttpResponse {
+    let (branch, tail) = path.into_inner();
+    let path = PathBuf::from(tail.join("/"));
 
-    let readme = fs::read_to_string(path.join("readme.md")).ok()
-        .map(|s| render_markdown(s));
+    if !path.exists() {
+        return HttpResponse::NotFound().body(format!("Resource {:?} does not exist.", path))
+    }
 
-    let template = IndexTemplate {
-        name,
-        branches: branches.iter().map(|s| &**s).collect(),
-        tags: tags.iter().map(|s| &**s).collect(),
-        commits,
-        readme: readme.as_deref(),
-    };
-
-    render_template(template)
+    panic!("Wahh!!");
 }
 
 fn render_template(template: impl Template) -> HttpResponse {

@@ -1,10 +1,12 @@
 use std::future::{ready, Ready};
+use std::path::PathBuf;
 use std::rc::Rc;
 
-use actix_web::{dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform}, Error, HttpMessage, HttpResponse};
+use actix_web::{Error, HttpMessage, HttpResponse, web};
 use actix_web::body::EitherBody;
+use actix_web::dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform};
+use gix::Repository;
 use futures_util::future::LocalBoxFuture;
-use crate::{RepoData, RepoDir};
 
 pub struct UnwrapRepo;
 
@@ -46,23 +48,23 @@ impl<S, B> Service<ServiceRequest> for UnwrapRepoMiddleware<S>
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let service = Rc::clone(&self.service);
 
-        let dir = req.app_data::<RepoDir>().unwrap().path
-            .join(req.match_info().query("repo"));
-
         Box::pin(async move {
-            let repo = match gix::open(&dir) {
-                Ok(repo) => repo,
-                Err(err) => {
-                    return Ok(req.into_response(
-                        HttpResponse::NotFound().body(err.to_string())
-                    ).map_into_right_body());
+            let repo = match req.app_data::<web::Data<Repository>>() {
+                Some(repo) => repo.get_ref().clone(),
+                None => {
+                    let path = req.app_data::<web::Data<PathBuf>>().unwrap().join(req.match_info().query("repo"));
+                    match gix::open(path) {
+                        Ok(repo) => repo,
+                        Err(err) => {
+                            return Ok(req.into_response(
+                                HttpResponse::NotFound().body(err.to_string())
+                            ).map_into_right_body());
+                        }
+                    }
                 }
             };
 
-            println!("{:?}", repo);
-            println!("{:?}", req);
-
-            req.extensions_mut().insert(RepoData { repo, name: "" });
+            req.extensions_mut().insert(repo);
             service.call(req).await.map(|res| res.map_into_left_body())
         })
     }

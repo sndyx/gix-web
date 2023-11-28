@@ -1,28 +1,12 @@
 mod page;
-mod repo;
-mod auth;
 mod middleware;
 
-use std::future::Future;
-use std::path::{Path, PathBuf};
-use std::rc::Rc;
-use std::sync::Arc;
-use actix_web::{get, App, HttpResponse, HttpServer, web, Resource, HttpMessage, FromRequest, HttpRequest};
-use actix_web::body::MessageBody;
-use actix_web::dev::{HttpServiceFactory, Payload, Service as _, Service, ServiceFactory, ServiceRequest, ServiceResponse};
-use futures_util::future::{err, FutureExt, ok};
-use gix::Repository;
+use std::path::PathBuf;
+
+use actix_web::{get, App, HttpResponse, HttpServer, web};
 use rust_embed::RustEmbed;
 use crate::middleware::UnwrapRepo;
-
-struct RepoDir<'a> {
-    path: &'a Path
-}
-
-struct RepoData<'a> {
-    repo: Repository,
-    name: &'a str
-}
+use crate::page::{index, repo_index};
 
 #[derive(RustEmbed)]
 #[folder = "templates/css/"]
@@ -30,33 +14,31 @@ struct CssFiles;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let path = Path::new("/Users/25alexandercapitos/sndy/Documents");
+    std::env::set_var("RUST_LOG", "debug");
+    env_logger::init();
+    let path = PathBuf::from("/Users/25alexandercapitos/sndy/Documents/");
 
     HttpServer::new(move || {
-        let scope = if let Ok(repo) = gix::open(path) {
-            web::scope("")
-                .wrap(UnwrapRepo)
-                .app_data(RepoData {
-                    repo,
-                    name: path.file_name().unwrap().to_str().unwrap()
-                })
-        } else {
-            web::scope("{repo}")
-                .wrap(UnwrapRepo)
-        };
-
         App::new()
-            .app_data(RepoDir { path })
+            .app_data(web::Data::new(path.clone()))
+            .service(css) //
             .service(
-                scope
+                match gix::open(path.clone()) {
+                    Ok(repo) => web::scope("/")
+                        .app_data(web::Data::new(repo)),
+                    Err(_) => web::scope("/{repo}")
+                }
+                    .wrap(UnwrapRepo)
+                    .service(repo_index)
             )
+            .service(index) // Route only active during multi repo mode
     })
     .bind(("127.0.0.1", 8080))?
     .run()
     .await
 }
 
-#[get("/css/{file}")]
+#[get("/+css/{file}")]
 async fn css(file: web::Path<String>) -> HttpResponse {
     match CssFiles::get(file.into_inner().as_str()) {
         Some(content) => HttpResponse::Ok()
