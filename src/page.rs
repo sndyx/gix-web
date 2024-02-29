@@ -1,11 +1,13 @@
+use std::error::Error;
 use std::fs;
-use std::path::PathBuf;
-use actix_web::{get, web, HttpResponse};
+use std::path::{Path, PathBuf};
+use actix_web::{get, web, HttpResponse, HttpRequest};
 use askama::Template;
 use comrak::{format_html_with_plugins, parse_document, Arena, Options, Plugins};
 use comrak::nodes::NodeValue;
 use comrak::plugins::syntect::SyntectAdapter;
 use gix::{Commit, Repository};
+use gix::object::Kind;
 
 
 #[get("/")]
@@ -69,19 +71,67 @@ struct FileTemplate<'a> {
 }
 
 
-#[get("/refs/heads/{branch}/{file:.*}")]
+#[get("/refs/{type}/{location:.*}")]
 pub async fn repo_path(
+    req: HttpRequest,
     repo: web::ReqData<Repository>,
-    path: web::Path<(String, Vec<String>)>
 ) -> HttpResponse {
-    let (branch, tail) = path.into_inner();
-    let path = PathBuf::from(tail.join("/"));
+    let location = req.match_info().query("location");
+    let ref_type = req.match_info().query("type");
+    let (ref_name, path) = location
+        .split_once("/")
+        .unwrap_or((location, "/"));
 
-    if !path.exists() {
-        return HttpResponse::NotFound().body(format!("Resource {:?} does not exist.", path))
+    let commit = match find_commit(&repo, format!("refs/{ref_type}/{ref_name}").as_str()) {
+        Ok(commit) => commit,
+        Err(_) => return HttpResponse::NotFound()
+            .body(format!("Reference 'refs/{ref_type}/{ref_name}' does not exist."))
+    };
+    let tree = commit.tree().unwrap();
+
+    let mut buf: Vec<u8> = vec![];
+    let entry = match tree.lookup_entry_by_path(Path::new(path), &mut buf).unwrap() {
+        Some(entry) => entry,
+        None => return HttpResponse::NotFound().body(format!("file '{path}' does not exist"))
+    };
+
+    match entry.object().unwrap().kind {
+        Kind::Blob => {
+            let mut blob = entry.object().unwrap().into_blob();
+            let content = String::from_utf8(blob.take_data()).unwrap();
+
+            let display = match Path::new(path).extension() {
+                Some(str) => {
+                    match str.to_str().unwrap() {
+                        "md" => render_markdown(content),
+                        _ => content,
+                    }
+                }
+                None => content
+            };
+
+            return HttpResponse::Ok().body(display);
+        },
+        Kind::Tree => {
+
+        }
+        _ => {
+
+        }
     }
 
-    panic!("Wahh!!");
+    HttpResponse::Ok().body("")
+}
+
+fn find_commit<'repo>(
+    repo: &'repo Repository,
+    branch: &str,
+) -> Result<Commit<'repo>, Box<dyn Error>> {
+    Ok(repo.find_reference(branch)?
+        .into_fully_peeled_id()?
+        .object()?
+        .into_commit()
+    )
 }
 
 fn render_template(template: impl Template) -> HttpResponse {
